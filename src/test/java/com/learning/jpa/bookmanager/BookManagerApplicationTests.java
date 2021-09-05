@@ -1,4 +1,4 @@
-package com.learning.jpa.BookManager;
+package com.learning.jpa.bookmanager;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

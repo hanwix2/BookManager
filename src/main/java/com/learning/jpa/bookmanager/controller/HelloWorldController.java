@@ -1,4 +1,4 @@
-package com.learning.jpa.BookManager.controller;
+package com.learning.jpa.bookmanager.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
