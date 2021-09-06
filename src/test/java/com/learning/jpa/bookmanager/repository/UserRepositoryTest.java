@@ -6,10 +6,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+
+import static org.springframework.data.domain.ExampleMatcher.GenericPropertyMatchers.endsWith;
 
 @SpringBootTest
 class UserRepositoryTest {
@@ -66,6 +68,18 @@ class UserRepositoryTest {
     }
 
     @Test
+    void flushTest() {
+        // flush는 DB 반영 시점을 조절 (log상으로는 확인 불가)
+        userRepository.saveAndFlush(new User("new martin", "newMartin@email.com"));
+
+//        // Or
+//        userRepository.save(new User("new martin", "newMartin@email.com"));
+//        userRepository.flush();
+
+        userRepository.findAll().forEach(System.out::println);
+    }
+
+    @Test
     @DisplayName("user 여러명 추가")
     void saveAllTest() {
         User user1 = new User("jack", "jack@email.com");
@@ -76,6 +90,88 @@ class UserRepositoryTest {
         List<User> users = userRepository.findAll();
 
         users.forEach(System.out::println);
+    }
+
+    @Test
+    @DisplayName("현재 저장되어 있는 레코드 수 출력")
+    void countTest() {
+        long count = userRepository.count();
+
+        System.out.println(count);
+    }
+
+    @Test
+    @DisplayName("1번 user가 존재하는지 출력")
+    void existsTest() {
+        // 실제 실행 쿼리를 확인해 보면 count 쿼리로 처리한다.
+        boolean exists = userRepository.existsById(1L);
+
+        System.out.println(exists);
+    }
+
+    @Test
+    @DisplayName("1번 user 삭제 (delete)")
+    void deleteTest() {
+        userRepository.delete(userRepository.findById(1L).orElseThrow(RuntimeException::new));
+    }
+
+    @Test
+    @DisplayName("1번 user 삭제 (deleteById)")
+    void deleteByIdTest() {
+        // 삭제하기 전 해당 엔티티가 실제로 존재하는지의 여부 확인으로 SELECT 쿼리 진행 된다.
+        userRepository.deleteById(1L);
+    }
+
+    @Test
+    @DisplayName("모든 user 삭제")
+    void deleteAllTest01() {
+        // deleteAll은 레코드가 존재하는지 먼저 확인(SELECT)하고
+        // 각각의 모든 데이터를 삭제하는 쿼리(DELETE)를 수행한다. (레코드 수만큼)
+        // -> 성능 이슈 발생 가능성이 높다.
+        userRepository.deleteAll();
+    }
+
+    @Test
+    @DisplayName("지정한 여러 user 삭제")
+    void deleteAllTest02() {
+        // deleteAllTest01 와 마찬가지로 지우려는 데이터 수만큼 DELETE 쿼리 수행
+        userRepository.deleteAll(userRepository.findAllById(Lists.newArrayList(1L, 3L)));
+    }
+
+    @Test
+    @DisplayName("지정한 여러 user 삭제 (deleteAllInBatch)")
+    void deleteAllInBatchTest() {
+        // 데이터를 지우기 전 확인(SELECT) 작업을 수행하지 않고
+        // DELETE 쿼리를 한번만 수행한다. (OR 연산)
+        userRepository.deleteAllInBatch(userRepository.findAllById(Lists.newArrayList(1L, 3L)));
+    }
+
+    @Test
+    @DisplayName("페이징을 적용하여 user 출력")
+    void pagingTest() {
+        Page<User> users = userRepository.findAll(PageRequest.of(1, 3));
+
+        System.out.println("page: " + users);
+        System.out.println("totalElements: " + users.getTotalElements());
+        System.out.println("totalPages: " + users.getTotalPages());
+        System.out.println("numberOfElements: " + users.getNumberOfElements());
+        System.out.println("sort: " + users.getSort());
+        System.out.println("size: " + users.getSize());
+
+        users.getContent().forEach(System.out::println);
+    }
+
+    @Test
+    void queryByExampleTest01() {
+        // QueryByExample(QBE): Entity를 Example로 만들고 Matcher를 추가하여 선언함으로 필요한 쿼리를 만드는 방법
+        // 단점: 문자열에 국한 / 복잡한 쿼리에 대해선 QueryDsl 사용
+        ExampleMatcher matcher = ExampleMatcher.matching()
+                .withIgnorePaths("name")
+                .withMatcher("email", endsWith());
+
+        Example<User> example = Example.of(new User("ma", "email.com"), matcher);
+
+        userRepository.findAll(example).forEach(System.out::println);
     }
 
 }
