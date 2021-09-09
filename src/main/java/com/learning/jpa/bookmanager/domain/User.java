@@ -9,6 +9,7 @@ import javax.persistence.Id;
 import java.time.LocalDateTime;
 
 @Getter
+@Setter
 @ToString
 @EqualsAndHashCode
 @NoArgsConstructor

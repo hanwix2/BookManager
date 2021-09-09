@@ -162,7 +162,7 @@ class UserRepositoryTest {
     }
 
     @Test
-    void queryByExampleTest01() {
+    void queryByExampleTest() {
         // QueryByExample(QBE): Entity를 Example로 만들고 Matcher를 추가하여 선언함으로 필요한 쿼리를 만드는 방법
         // 단점: 문자열에 국한 / 복잡한 쿼리에 대해선 QueryDsl 사용
         ExampleMatcher matcher = ExampleMatcher.matching()
@@ -172,6 +172,18 @@ class UserRepositoryTest {
         Example<User> example = Example.of(new User("ma", "email.com"), matcher);
 
         userRepository.findAll(example).forEach(System.out::println);
+    }
+
+    @Test
+    void updateTest() {
+        // save 메소드가 호출될 때 entity의 id 값이 null 이라면 insert, 아니라면 update 쿼리 수행
+
+        userRepository.save(new User("david", "david@email.com")); // insert 쿼리
+
+        User user = userRepository.findById(1L).orElseThrow(RuntimeException::new);
+        user.setEmail("hanwix-updated@email.com");
+
+        userRepository.save(user); // update 쿼리
     }
 
 }
