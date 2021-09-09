@@ -3,6 +3,7 @@ package com.learning.jpa.bookmanager.repository;
 import com.learning.jpa.bookmanager.domain.User;
 import org.assertj.core.util.Lists;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -19,171 +20,210 @@ class UserRepositoryTest {
     @Autowired
     private UserRepository userRepository;
 
-    @Test
-    @DisplayName("이름 역순으로 모든 user 출력")
-    void findAllTest() {
-        List<User> users = userRepository.findAll(Sort.by(Sort.Direction.DESC, "name"));
+    @Nested
+    @DisplayName("기초 JPA 메소드 테스트")
+    class BasicJPATest {
 
-        users.forEach(System.out::println);
-    }
+        @Test
+        @DisplayName("이름 역순으로 모든 user 출력")
+        void findAllTest() {
+            List<User> users = userRepository.findAll(Sort.by(Sort.Direction.DESC, "name"));
 
-    @Test
-    @DisplayName("id 값으로 여러 user 찾기")
-    void findAllByIdTest() {
-        List<User> users = userRepository.findAllById(Lists.newArrayList(1L, 2L, 3L));
+            users.forEach(System.out::println);
+        }
 
-        users.forEach(System.out::println);
-    }
+        @Test
+        @DisplayName("id 값으로 여러 user 찾기")
+        void findAllByIdTest() {
+            List<User> users = userRepository.findAllById(Lists.newArrayList(1L, 2L, 3L));
 
-    @Test
-    @Transactional
-    @DisplayName("id 값으로 한 명의 user 찾기 (getById 메소드)")
-    void getByIdTest() {
-        // getById()는 기본적으로 entity에 대해서 lazy한 로딩 지원 (Lazy Patch)
-        // EntityManager에서 reference만 가지고 있고 실제 값을 구하는 시점에 세션을 통해 조회
-        User user = userRepository.getById(1L);
+            users.forEach(System.out::println);
+        }
 
-        System.out.println(user);
-    }
+        @Test
+        @Transactional
+        @DisplayName("id 값으로 한 명의 user 찾기 (getById 메소드)")
+        void getByIdTest() {
+            // getById()는 기본적으로 entity에 대해서 lazy한 로딩 지원 (Lazy Patch)
+            // EntityManager에서 reference만 가지고 있고 실제 값을 구하는 시점에 세션을 통해 조회
+            User user = userRepository.getById(1L);
 
-    @Test
-    @DisplayName("id 값으로 한 명의 user 찾기 (findById 메소드)")
-    void findByIdTest() {
-        // findById는 EntityManager에서 직접 Entity 객체를 가져옴 (Eager patch)
-        User user = userRepository.findById(1L).orElse(null);
+            System.out.println(user);
+        }
 
-        System.out.println(user);
-    }
+        @Test
+        @DisplayName("id 값으로 한 명의 user 찾기 (findById 메소드)")
+        void findByIdTest() {
+            // findById는 EntityManager에서 직접 Entity 객체를 가져옴 (Eager patch)
+            User user = userRepository.findById(1L).orElse(null);
 
-    @Test
-    @DisplayName("user 한 명 추가")
-    void saveTest() {
-        User user1 = new User("jack", "jack@email.com");
+            System.out.println(user);
+        }
 
-        userRepository.save(user1);
+        @Test
+        @DisplayName("user 한 명 추가")
+        void saveTest() {
+            User user1 = new User("jack", "jack@email.com");
 
-        List<User> users = userRepository.findAll();
+            userRepository.save(user1);
 
-        users.forEach(System.out::println);
-    }
+            List<User> users = userRepository.findAll();
 
-    @Test
-    void flushTest() {
-        // flush는 DB 반영 시점을 조절 (log상으로는 확인 불가)
-        userRepository.saveAndFlush(new User("new martin", "newMartin@email.com"));
+            users.forEach(System.out::println);
+        }
+
+        @Test
+        void flushTest() {
+            // flush는 DB 반영 시점을 조절 (log상으로는 확인 불가)
+            userRepository.saveAndFlush(new User("new martin", "newMartin@email.com"));
 
 //        // Or
 //        userRepository.save(new User("new martin", "newMartin@email.com"));
 //        userRepository.flush();
 
-        userRepository.findAll().forEach(System.out::println);
+            userRepository.findAll().forEach(System.out::println);
+        }
+
+        @Test
+        @DisplayName("user 여러명 추가")
+        void saveAllTest() {
+            User user1 = new User("jack", "jack@email.com");
+            User user2 = new User("steve", "steve@email.com");
+
+            userRepository.saveAll(Lists.newArrayList(user1, user2));
+
+            List<User> users = userRepository.findAll();
+
+            users.forEach(System.out::println);
+        }
+
+        @Test
+        @DisplayName("현재 저장되어 있는 레코드 수 출력")
+        void countTest() {
+            long count = userRepository.count();
+
+            System.out.println(count);
+        }
+
+        @Test
+        @DisplayName("1번 user가 존재하는지 출력")
+        void existsTest() {
+            // 실제 실행 쿼리를 확인해 보면 count 쿼리로 처리한다.
+            boolean exists = userRepository.existsById(1L);
+
+            System.out.println(exists);
+        }
+
+        @Test
+        @DisplayName("1번 user 삭제 (delete)")
+        void deleteTest() {
+            userRepository.delete(userRepository.findById(1L).orElseThrow(RuntimeException::new));
+        }
+
+        @Test
+        @DisplayName("1번 user 삭제 (deleteById)")
+        void deleteByIdTest() {
+            // 삭제하기 전 해당 엔티티가 실제로 존재하는지의 여부 확인으로 SELECT 쿼리 진행 된다.
+            userRepository.deleteById(1L);
+        }
+
+        @Test
+        @DisplayName("모든 user 삭제")
+        void deleteAllTest01() {
+            // deleteAll은 레코드가 존재하는지 먼저 확인(SELECT)하고
+            // 각각의 모든 데이터를 삭제하는 쿼리(DELETE)를 수행한다. (레코드 수만큼)
+            // -> 성능 이슈 발생 가능성이 높다.
+            userRepository.deleteAll();
+        }
+
+        @Test
+        @DisplayName("지정한 여러 user 삭제")
+        void deleteAllTest02() {
+            // deleteAllTest01 와 마찬가지로 지우려는 데이터 수만큼 DELETE 쿼리 수행
+            userRepository.deleteAll(userRepository.findAllById(Lists.newArrayList(1L, 3L)));
+        }
+
+        @Test
+        @DisplayName("지정한 여러 user 삭제 (deleteAllInBatch)")
+        void deleteAllInBatchTest() {
+            // 데이터를 지우기 전 확인(SELECT) 작업을 수행하지 않고
+            // DELETE 쿼리를 한번만 수행한다. (OR 연산)
+            userRepository.deleteAllInBatch(userRepository.findAllById(Lists.newArrayList(1L, 3L)));
+        }
+
+        @Test
+        @DisplayName("페이징을 적용하여 user 출력")
+        void pagingTest() {
+            Page<User> users = userRepository.findAll(PageRequest.of(1, 3));
+
+            System.out.println("page: " + users);
+            System.out.println("totalElements: " + users.getTotalElements());
+            System.out.println("totalPages: " + users.getTotalPages());
+            System.out.println("numberOfElements: " + users.getNumberOfElements());
+            System.out.println("sort: " + users.getSort());
+            System.out.println("size: " + users.getSize());
+
+            users.getContent().forEach(System.out::println);
+        }
+
+        @Test
+        void queryByExampleTest() {
+            // QueryByExample(QBE): Entity를 Example로 만들고 Matcher를 추가하여 선언함으로 필요한 쿼리를 만드는 방법
+            // 단점: 문자열에 국한 / 복잡한 쿼리에 대해선 QueryDsl 사용
+            ExampleMatcher matcher = ExampleMatcher.matching()
+                    .withIgnorePaths("name")
+                    .withMatcher("email", endsWith());
+
+            Example<User> example = Example.of(new User("ma", "email.com"), matcher);
+
+            userRepository.findAll(example).forEach(System.out::println);
+        }
+
+        @Test
+        void updateTest() {
+            // save 메소드가 호출될 때 entity의 id 값이 null 이라면 insert, 아니라면 update 쿼리 수행
+
+            userRepository.save(new User("david", "david@email.com")); // insert 쿼리
+
+            User user = userRepository.findById(1L).orElseThrow(RuntimeException::new);
+            user.setEmail("hanwix-updated@email.com");
+
+            userRepository.save(user); // update 쿼리
+        }
+
     }
 
-    @Test
-    @DisplayName("user 여러명 추가")
-    void saveAllTest() {
-        User user1 = new User("jack", "jack@email.com");
-        User user2 = new User("steve", "steve@email.com");
+    @Nested
+    @DisplayName("QueryMethod 테스트")
+    class QueryMethodTest {
 
-        userRepository.saveAll(Lists.newArrayList(user1, user2));
+        @Test
+        @DisplayName("리턴 타입이 List<User>로 select")
+        void select01() {
+            System.out.println(userRepository.findByName("alex"));
+        }
 
-        List<User> users = userRepository.findAll();
+        @Test
+        @DisplayName("서로 다른 키워드로 select 쿼리를 생성하는 메소드")
+        void select02() {
+            System.out.println("findByEmail : " + userRepository.findByEmail("hanwix@email.com"));
+            System.out.println("getByEmail : " + userRepository.getByEmail("hanwix@email.com"));
+            System.out.println("readByEmail : " + userRepository.readByEmail("hanwix@email.com"));
+            System.out.println("queryByEmail : " + userRepository.queryByEmail("hanwix@email.com"));
+            System.out.println("searchByEmail : " + userRepository.searchByEmail("hanwix@email.com"));
+            System.out.println("streamByEmail : " + userRepository.streamByEmail("hanwix@email.com"));
+            System.out.println("findUserByEmail : " + userRepository.findUserByEmail("hanwix@email.com"));
 
-        users.forEach(System.out::println);
-    }
+            System.out.println("findSomethingByEmail : " + userRepository.findSomethingByEmail("hanwix@email.com")); // something은 메소드 키워드에서 무시됨
+            // System.out.println("findByByEmail : " + userRepository.findByByEmail("hanwix@email.com")); // 런타임 오류 (byEmail 이라는 property 를 찾지 못함)
 
-    @Test
-    @DisplayName("현재 저장되어 있는 레코드 수 출력")
-    void countTest() {
-        long count = userRepository.count();
+            // limit
+            System.out.println("findFirst1ByName : " + userRepository.findFirst1ByName("alex")); // limit: 1
+            System.out.println("findTop1ByName : " + userRepository.findTop2ByName("alex")); // limit: 2
+            // System.out.println("findLast1ByName : " + userRepository.findLast1ByName("alex")); // Last는 지원하지 않는 키워드 (무시됨)
 
-        System.out.println(count);
-    }
+        }
 
-    @Test
-    @DisplayName("1번 user가 존재하는지 출력")
-    void existsTest() {
-        // 실제 실행 쿼리를 확인해 보면 count 쿼리로 처리한다.
-        boolean exists = userRepository.existsById(1L);
-
-        System.out.println(exists);
-    }
-
-    @Test
-    @DisplayName("1번 user 삭제 (delete)")
-    void deleteTest() {
-        userRepository.delete(userRepository.findById(1L).orElseThrow(RuntimeException::new));
-    }
-
-    @Test
-    @DisplayName("1번 user 삭제 (deleteById)")
-    void deleteByIdTest() {
-        // 삭제하기 전 해당 엔티티가 실제로 존재하는지의 여부 확인으로 SELECT 쿼리 진행 된다.
-        userRepository.deleteById(1L);
-    }
-
-    @Test
-    @DisplayName("모든 user 삭제")
-    void deleteAllTest01() {
-        // deleteAll은 레코드가 존재하는지 먼저 확인(SELECT)하고
-        // 각각의 모든 데이터를 삭제하는 쿼리(DELETE)를 수행한다. (레코드 수만큼)
-        // -> 성능 이슈 발생 가능성이 높다.
-        userRepository.deleteAll();
-    }
-
-    @Test
-    @DisplayName("지정한 여러 user 삭제")
-    void deleteAllTest02() {
-        // deleteAllTest01 와 마찬가지로 지우려는 데이터 수만큼 DELETE 쿼리 수행
-        userRepository.deleteAll(userRepository.findAllById(Lists.newArrayList(1L, 3L)));
-    }
-
-    @Test
-    @DisplayName("지정한 여러 user 삭제 (deleteAllInBatch)")
-    void deleteAllInBatchTest() {
-        // 데이터를 지우기 전 확인(SELECT) 작업을 수행하지 않고
-        // DELETE 쿼리를 한번만 수행한다. (OR 연산)
-        userRepository.deleteAllInBatch(userRepository.findAllById(Lists.newArrayList(1L, 3L)));
-    }
-
-    @Test
-    @DisplayName("페이징을 적용하여 user 출력")
-    void pagingTest() {
-        Page<User> users = userRepository.findAll(PageRequest.of(1, 3));
-
-        System.out.println("page: " + users);
-        System.out.println("totalElements: " + users.getTotalElements());
-        System.out.println("totalPages: " + users.getTotalPages());
-        System.out.println("numberOfElements: " + users.getNumberOfElements());
-        System.out.println("sort: " + users.getSort());
-        System.out.println("size: " + users.getSize());
-
-        users.getContent().forEach(System.out::println);
-    }
-
-    @Test
-    void queryByExampleTest() {
-        // QueryByExample(QBE): Entity를 Example로 만들고 Matcher를 추가하여 선언함으로 필요한 쿼리를 만드는 방법
-        // 단점: 문자열에 국한 / 복잡한 쿼리에 대해선 QueryDsl 사용
-        ExampleMatcher matcher = ExampleMatcher.matching()
-                .withIgnorePaths("name")
-                .withMatcher("email", endsWith());
-
-        Example<User> example = Example.of(new User("ma", "email.com"), matcher);
-
-        userRepository.findAll(example).forEach(System.out::println);
-    }
-
-    @Test
-    void updateTest() {
-        // save 메소드가 호출될 때 entity의 id 값이 null 이라면 insert, 아니라면 update 쿼리 수행
-
-        userRepository.save(new User("david", "david@email.com")); // insert 쿼리
-
-        User user = userRepository.findById(1L).orElseThrow(RuntimeException::new);
-        user.setEmail("hanwix-updated@email.com");
-
-        userRepository.save(user); // update 쿼리
     }
 
 }
